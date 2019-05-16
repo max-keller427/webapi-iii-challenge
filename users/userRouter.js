@@ -13,7 +13,16 @@ router.post("/", validateUser, async (req, res) => {
   }
 });
 
-router.post("/:id/posts", validateUserId, (req, res) => {});
+router.post("/:id/posts", validateUser, validatePost, async (req, res) => {
+  const postInfo = { ...req.body, post_id: req.params.id };
+
+  try {
+    const post = await db.insert(postInfo);
+    res.status(201).json(post);
+  } catch (err) {
+    res.status(500).json({ message: "Error adding post" });
+  }
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -28,13 +37,45 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("/:id", validateUserId, (req, res) => {});
+router.get("/:id", validateUserId, (req, res) => {
+  res.status(200).json(req.user);
+});
 
-router.get("/:id/posts", validateUserId, (req, res) => {});
+router.get("/:id/posts", validateUserId, async (req, res) => {
+  try {
+    const posts = await db.getUserPosts(req.params.id);
+    console.log(req.params.id);
+    res.status(201).json(posts);
+  } catch (err) {
+    res.status(500).json({ message: "unable to find posts" });
+  }
+});
 
-router.delete("/:id", validateUserId, (req, res) => {});
+router.delete("/:id", validateUserId, async (req, res) => {
+  try {
+    const count = await db.remove(req.params.id);
+    if (count > 0) {
+      res.status(200).json({ message: "user has been removed" });
+    } else {
+      res.status(404).json({ message: "user cannot be found" });
+    }
+  } catch (err) {
+    res.status(500).json({ message: "error removing user" });
+  }
+});
 
-router.put("/:id", validateUserId, (req, res) => {});
+router.put("/:id", validateUserId, async (req, res) => {
+  try {
+    const user = await db.update(req.params.id, req.body);
+    if (user) {
+      res.status(200).json(user);
+    } else {
+      res.status(404).json({ message: "user cannot be found" });
+    }
+  } catch (err) {
+    res.status(500).json({ message: "error updating user" });
+  }
+});
 
 //custom middleware
 
@@ -56,7 +97,9 @@ async function validateUserId(req, res, next) {
 async function validateUser(req, res, next) {
   try {
     if (req.body && Object.keys(req.body).length) {
-      next();
+      if (req.body.name !== "") {
+        next();
+      }
     } else {
       res.status(400).json({ message: "missing user data" });
     }
@@ -65,6 +108,12 @@ async function validateUser(req, res, next) {
   }
 }
 
-function validatePost(req, res, next) {}
+function validatePost(req, res, next) {
+  if (req.body && Object.keys(req.body).length) {
+    next();
+  } else {
+    res.status(500).json({ message: "please include a body" });
+  }
+}
 
 module.exports = router;
