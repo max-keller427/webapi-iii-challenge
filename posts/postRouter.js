@@ -38,7 +38,7 @@ router.put("/:id", validatePostId, validatePost, async (req, res) => {
     if (post) {
       res.status(200).json(post);
     } else {
-      res.status(404).json({ message: "post cant be found" });
+      res.status(404).json({ message: "Please include a body for the post" });
     }
   } catch (err) {
     res.status(500).json({ message: "error processing request" });

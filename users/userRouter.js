@@ -3,21 +3,24 @@ const express = require("express");
 const router = express.Router();
 
 db = require("./userDb.js");
+postdb = require("../posts/postDb.js");
 
 router.post("/", validateUser, async (req, res) => {
   try {
     const post = await db.insert(req.body);
+    console.log(post);
     res.status(200).json(post);
   } catch (err) {
     res.status(400).json({ message: "Error adding user" });
   }
 });
 
-router.post("/:id/posts", validateUser, validatePost, async (req, res) => {
-  const postInfo = { ...req.body, post_id: req.params.id };
+router.post("/:id/posts", validateUserId, validatePost, async (req, res) => {
+  const postInfo = { ...req.body, user_id: req.params.id };
+  // console.log("postInfo", postInfo);
 
   try {
-    const post = await db.insert(postInfo);
+    const post = await postdb.insert(postInfo);
     res.status(201).json(post);
   } catch (err) {
     res.status(500).json({ message: "Error adding post" });
@@ -109,8 +112,10 @@ async function validateUser(req, res, next) {
 }
 
 function validatePost(req, res, next) {
-  if (req.body && Object.keys(req.body).length) {
-    next();
+  if (req.body.text !== "") {
+    if (req.body && Object.keys(req.body).length) {
+      next();
+    }
   } else {
     res.status(500).json({ message: "please include a body" });
   }
